@@ -1,0 +1,17 @@
+<resources>
+    <string name="app_name">MyYouTubePlayer</string>
+    <string name="action_settings">Settings</string>
+
+    <string name="timePickerText">Ile masz czasu?</string>
+    <string name="TimePickerButtonText">Ustaw czas!</string>
+    <string name="TimePickerNextText">Wybierz kategorię!</string>
+    <string name="title_activity_category_add">CategoryAdd</string>
+
+    <string name="category_picker_add">Dodaj nową kategorię</string>
+    <string name="category_image_pick">Wybierz obrazek</string>
+
+    <string name="category_add_label">Kategoria</string>
+    <string name="category_add_name">Nazwa</string>
+    <string name="category_add_image">Obrazek</string>
+    <string name="category_add">Dodaj</string>
+</resources>
