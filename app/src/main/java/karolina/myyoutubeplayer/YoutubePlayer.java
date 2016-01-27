@@ -1,16 +1,20 @@
 package karolina.myyoutubeplayer;
 
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.youtube.player.YouTubeBaseActivity;
 import com.google.android.youtube.player.YouTubeInitializationResult;
 import com.google.android.youtube.player.YouTubePlayer;
+import com.google.android.youtube.player.YouTubePlayerFragment;
 import com.google.android.youtube.player.YouTubePlayerView;
 import com.google.api.client.http.HttpRequest;
 import com.google.api.client.http.HttpRequestInitializer;
@@ -44,6 +48,8 @@ public class YoutubePlayer extends YouTubeBaseActivity implements YouTubePlayer.
     private static YouTube youtube;
     private YouTubePlayer player;
     private String nextPageToken = "";
+    private boolean ifVideoPlayed;
+    private static final int NUMBER_OF_TRIES = 10;
 
     public static final String EXTRA_YOUTUBE_CATEGORY = "category";
     public static final String EXTRA_MINUTES = "minutes";
@@ -76,6 +82,8 @@ public class YoutubePlayer extends YouTubeBaseActivity implements YouTubePlayer.
             }
         });
 
+        TextView textView = (TextView) findViewById(R.id.textview);
+
         //zaczynamy..
         this.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
         loadYoutube();
@@ -83,37 +91,91 @@ public class YoutubePlayer extends YouTubeBaseActivity implements YouTubePlayer.
 
 
     private void loadYoutube(){
-        YouTubePlayerView youTubeView = (YouTubePlayerView) findViewById(R.id.youtube_view);
+        //YouTubePlayerView youTubeView = (YouTubePlayerView) findViewById(R.id.youtube_view);
+        YouTubePlayerFragment youTubeView = (YouTubePlayerFragment)getFragmentManager().findFragmentById(R.id.youtube_view);
+
         youTubeView.initialize(DeveloperKey.DEVELOPER_KEY, this);
     }
 
     private View.OnClickListener getVideos = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
+            while(!playVideo()){
+            };
+        }
+    };
 
-            new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    String videoId;
-                    while(true) {
-                        Map<String, Integer> apiResults = getConvertedIdVideoDurations(getVideoIdDurations(getVideoIdList(watchChoice)));
+    private boolean playVideo() {
+        ifVideoPlayed = true;
+        Thread play = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                int i = 0;
+                String videoId = null;
+                Map<String, Integer> apiResults = null;
+                while (i++ <= NUMBER_OF_TRIES) {
+                    try {
+                        apiResults = getConvertedIdVideoDurations(getVideoIdDurations(getVideoIdList(watchChoice)));
 
-                        videoId = getMatchingVideoId(apiResults, minutes*60+seconds, 5);
+                        videoId = getMatchingVideoId(apiResults, minutes * 60 + seconds, 5);
                         if (videoId != null) {
                             break;
                         }
                     }
-                    player.cueVideo(videoId);
+                    catch(NullPointerException e) {
+                        e.printStackTrace();
+                        ifVideoPlayed = false; //try again if failed
+                    }
 
                 }
-            }).start();
 
-            //player.cueVideo("y6GaPkkGZGw");
-        }
-    };
+                if (videoId != null) {
+                    try {
+                        player.loadVideo(videoId);
+                    }
+                    catch (IllegalStateException e) {
+                        e.printStackTrace();
+                        finish();
+                    }
+                }
+                else {
+                    YoutubePlayer.this.runOnUiThread(new Runnable() {
+
+                        @Override
+                        public void run() {
+                            AlertDialog alertDialog = new AlertDialog.Builder(YoutubePlayer.this).create();
+                            alertDialog.setTitle("Not found");
+                            alertDialog.setMessage("Nie znaleziono filmu :( może spróbuj zmienić czas?");
+                            alertDialog.setButton(AlertDialog.BUTTON_NEUTRAL, "OK",
+                                    new DialogInterface.OnClickListener() {
+                                        public void onClick(DialogInterface dialog, int which) {
+                                            dialog.dismiss();
+                                            finish();
+                                        }
+                                    });
+                            alertDialog.show();
+                        }
+                    });
+                }
+            }
+        });
+        play.start();
+
+        if (!ifVideoPlayed)
+            play.stop();
+
+        //player.cueVideo("y6GaPkkGZGw");
+        return ifVideoPlayed;
+    }
 
     public String getMatchingVideoId(Map<String, Integer> mappedIdsDurations, Integer desiredDuration, Integer offset){
-        boolean lookForIdentical = mappedIdsDurations.containsValue(desiredDuration);
+        boolean lookForIdentical;
+        try {
+            lookForIdentical = mappedIdsDurations.containsValue(desiredDuration);
+        }
+        catch (NullPointerException e) {
+            return null;
+        }
 
         for(Map.Entry<String, Integer> entry : mappedIdsDurations.entrySet()){
             Integer value = entry.getValue();
@@ -133,16 +195,21 @@ public class YoutubePlayer extends YouTubeBaseActivity implements YouTubePlayer.
     public Map<String, Integer> getConvertedIdVideoDurations(Map<String,String> unparsedMap) {
         Map<String, Integer> idsConvertedDurations = new TreeMap<String, Integer>();
 
-        for (Map.Entry<String, String> entry : unparsedMap.entrySet()) {
-            idsConvertedDurations.put(entry.getKey(), (int) getTimeFromString(entry.getValue()));
+        try {
+            for (Map.Entry<String, String> entry : unparsedMap.entrySet()) {
+                idsConvertedDurations.put(entry.getKey(), (int) getTimeFromString(entry.getValue()));
+            }
         }
-
+        catch (NullPointerException e) {
+            e.printStackTrace();
+            return null;
+        }
         return idsConvertedDurations;
     }
 
     private Map<String, String> getVideoIdDurations(List<String> videoIdList) {
         StringBuilder queryString = new StringBuilder();
-        queryString.append("https://www.googleapis.com/youtube/v3/videos?part=contentDetails&key=" + DeveloperKey.DEVELOPER_KEY + "=");
+        queryString.append("https://www.googleapis.com/youtube/v3/videos?part=contentDetails&key=" + DeveloperKey.DEVELOPER_KEY + "&id=");
 
         try {
             for (int i = 0; i < videoIdList.size(); i++) {
@@ -153,6 +220,10 @@ public class YoutubePlayer extends YouTubeBaseActivity implements YouTubePlayer.
             }
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
+        }
+        catch (NullPointerException e) {
+            e.printStackTrace();
+            return null;
         }
 
         Map<String, String> idDurationMap = new TreeMap<String, String>();
@@ -185,44 +256,58 @@ public class YoutubePlayer extends YouTubeBaseActivity implements YouTubePlayer.
     }
 
     private List<String> getVideoIdList(String watchChoice) {
+        String duration = "short";
+        //adjust video duration
+        if (minutes >= 4 && minutes <= 20)
+            duration = "medium";
+        else if (minutes > 20)
+            duration = "long";
+
         try {
-        youtube = new YouTube.Builder(new NetHttpTransport(), new JacksonFactory(), new HttpRequestInitializer() {
-            @Override
-            public void initialize(HttpRequest request) throws IOException {
+            youtube = new YouTube.Builder(new NetHttpTransport(), new JacksonFactory(), new HttpRequestInitializer() {
+                @Override
+                public void initialize(HttpRequest request) throws IOException {
 
+                }
+            }).setApplicationName("API Project").build();
+
+            StringBuilder queryString = new StringBuilder();
+            queryString.append("https://www.googleapis.com/youtube/v3/search?part=snippet&q=");
+            queryString.append(watchChoice);
+            queryString.append("&maxResults=50&videoDuration=" + duration + "&type=video&key=" + DeveloperKey.DEVELOPER_KEY);
+
+            if(!nextPageToken.isEmpty()){
+                queryString.append("&pageToken=");
+                queryString.append(URLEncoder.encode(nextPageToken, "UTF-8"));
             }
-        }).setApplicationName("API Project").build();
-
-        StringBuilder queryString = new StringBuilder();
-        queryString.append("https://www.googleapis.com/youtube/v3/search?part=snippet&q=");
-        queryString.append(watchChoice);
-        queryString.append("&maxResults=50&videoDuration=short&type=video&key=" + DeveloperKey.DEVELOPER_KEY);
-
-        if(!nextPageToken.isEmpty()){
-            queryString.append("&pageToken=");
-            queryString.append(URLEncoder.encode(nextPageToken, "UTF-8"));
-        }
 
 
-        JSONObject jObject = new JSONObject(getHTTPJsonString(queryString.toString()));
-        this.nextPageToken = jObject.getString("nextPageToken");
-        if(nextPageToken == null){
-            return null;
-        }
-
-        JSONArray jArray = jObject.getJSONArray("items");
-
-        List<String> videoIdList = new ArrayList<String>();
-
-        for (int i=0; i < jArray.length(); i++) {
+            JSONObject jObject = new JSONObject(getHTTPJsonString(queryString.toString()));
             try {
-                JSONObject singleItem = jArray.getJSONObject(i);
-                JSONObject singleId = singleItem.getJSONObject("id");
-                videoIdList.add(singleId.getString("videoId"));
-            } catch (JSONException e) {
-                // Oops
+                this.nextPageToken = jObject.getString("nextPageToken");
+
+                if(nextPageToken == null){
+                    return null;
+                }
             }
-        }
+            catch (JSONException e) {
+                e.printStackTrace();
+                return null;
+            }
+
+            JSONArray jArray = jObject.getJSONArray("items");
+
+            List<String> videoIdList = new ArrayList<String>();
+
+            for (int i=0; i < jArray.length(); i++) {
+                try {
+                    JSONObject singleItem = jArray.getJSONObject(i);
+                    JSONObject singleId = singleItem.getJSONObject("id");
+                    videoIdList.add(singleId.getString("videoId"));
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+            }
             return videoIdList;
         } catch (Throwable t) {
             t.printStackTrace();
@@ -256,7 +341,10 @@ public class YoutubePlayer extends YouTubeBaseActivity implements YouTubePlayer.
             Log.e("error", "error", e);
         }
         finally {
-            try{if(inputStream != null)inputStream.close();}catch(Exception squish){}
+            try{
+                if(inputStream != null)
+                    inputStream.close();
+            }catch(Exception squish){}
         }
         return result;
     }
@@ -310,10 +398,18 @@ public class YoutubePlayer extends YouTubeBaseActivity implements YouTubePlayer.
 
     @Override
     public void onInitializationSuccess(YouTubePlayer.Provider provider, YouTubePlayer youTubePlayer, boolean wasRestored) {
-        if (!wasRestored) {
-            youTubePlayer.cueVideo("wKJ9KzGQq0w");
-        }
+
         this.player = youTubePlayer;
+
+        //disable automatic fullscreen
+        int controlFlags = player.getFullscreenControlFlags();
+        controlFlags &= ~YouTubePlayer.FULLSCREEN_FLAG_ALWAYS_FULLSCREEN_IN_LANDSCAPE;
+        controlFlags &= YouTubePlayer.FULLSCREEN_FLAG_CONTROL_SYSTEM_UI;
+        controlFlags &= YouTubePlayer.FULLSCREEN_FLAG_CUSTOM_LAYOUT;
+        player.addFullscreenControlFlag(YouTubePlayer.FULLSCREEN_FLAG_CUSTOM_LAYOUT);
+        player.setFullscreenControlFlags(controlFlags);
+        //disable fullscreen option
+        player.setShowFullscreenButton(false);
         newVideo.performClick();
 
     }

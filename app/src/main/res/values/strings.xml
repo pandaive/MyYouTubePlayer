@@ -11,7 +11,7 @@
     <string name="category_image_pick">Wybierz obrazek</string>
 
     <string name="category_add_label">Kategoria</string>
-    <string name="category_add_name">Nazwa</string>
-    <string name="category_add_image">Obrazek</string>
+    <string name="category_add_name">Nazwa wyświetlana (opcjonalnie)</string>
+    <string name="category_add_image">Obrazek (opcjonalnie)</string>
     <string name="category_add">Dodaj</string>
 </resources>

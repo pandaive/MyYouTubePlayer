@@ -15,7 +15,7 @@
             android:layout_height="wrap_content"/>
 
         <EditText
-            android:id="@+id/category_add_label"
+            android:id="@+id/category_add_name"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"/>
 
@@ -26,7 +26,7 @@
             android:layout_height="wrap_content"/>
 
         <EditText
-            android:id="@+id/category_add_name"
+            android:id="@+id/category_add_label"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"/>
 

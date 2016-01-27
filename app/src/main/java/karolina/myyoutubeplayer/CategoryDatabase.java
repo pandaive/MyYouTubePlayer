@@ -1,5 +1,6 @@
 package karolina.myyoutubeplayer;
 
+import static karolina.myyoutubeplayer.DbConstants.COLUMN_ID;
 import static karolina.myyoutubeplayer.DbConstants.COLUMN_IMAGE;
 import static karolina.myyoutubeplayer.DbConstants.COLUMN_LABEL;
 import static karolina.myyoutubeplayer.DbConstants.COLUMN_NAME;
@@ -37,12 +38,18 @@ public class CategoryDatabase implements CategoryProvider {
         sqLiteDatabase.insert(TABLE_NAME, null, contentValues);
     }
 
+    public void deleteCategory(Category category) {
+        SQLiteDatabase sqLiteDatabase = categoryDbHelper.getWritableDatabase();
+
+        sqLiteDatabase.delete(TABLE_NAME, COLUMN_ID + "=" + category.getId(), null);
+    }
+
     @Override
     public Category getCategory(int position) {
         SQLiteDatabase sqLiteDatabase = categoryDbHelper.getReadableDatabase();
 
         String projection[] = {
-                COLUMN_LABEL, COLUMN_NAME, COLUMN_IMAGE
+                COLUMN_ID, COLUMN_LABEL, COLUMN_NAME, COLUMN_IMAGE
         };
 
         Cursor cursor = sqLiteDatabase.query(
@@ -51,11 +58,12 @@ public class CategoryDatabase implements CategoryProvider {
 
         cursor.moveToPosition(position);
 
-        String label = cursor.getString(0);
-        String name = cursor.getString(1);
-        byte[] image = cursor.getBlob(2);
+        Integer id = cursor.getInt(0);
+        String label = cursor.getString(1);
+        String name = cursor.getString(2);
+        byte[] image = cursor.getBlob(3);
 
-        return new Category(label, name, image);
+        return new Category(id, label, name, image);
     }
 
     @Override

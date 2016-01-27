@@ -3,6 +3,7 @@ package karolina.myyoutubeplayer;
 import android.content.Intent;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.view.ContextMenu;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -45,14 +46,28 @@ public class CategoryPicker extends AppCompatActivity {
                 startActivity(addCategoryIntent);
                 return true;
             }
+            case R.id.refresh: {
+                initializeList();
+                return true;
+            }
+            case R.id.change_time: {
+                finish();
+            }
             default: {
                 return super.onOptionsItemSelected(item);
             }
         }
     }
 
+    @Override
+    public void onResume(){
+        super.onResume();
+        initializeList();
+    }
+
     private void initializeList(){
         ListView list = (ListView) findViewById(R.id.category_list);
+        registerForContextMenu(list);
 
         final CategoryAdapter categoryAdapter = new CategoryAdapter(this);
 
@@ -70,11 +85,27 @@ public class CategoryPicker extends AppCompatActivity {
     private void showCategory(Category category) {
 
         Intent intent = new Intent(this, YoutubePlayer.class);
-        intent.putExtra(YoutubePlayer.EXTRA_YOUTUBE_CATEGORY, category.getCategoryLabel());
+        intent.putExtra(YoutubePlayer.EXTRA_YOUTUBE_CATEGORY, category.getCategoryLabel().replaceAll("\\s", ""));
         intent.putExtra(YoutubePlayer.EXTRA_MINUTES, minutes);
         intent.putExtra(YoutubePlayer.EXTRA_SECONDS, seconds);
 
         startActivity(intent);
+    }
 
+    public void onCreateContextMenu(ContextMenu menu, View v, ContextMenu.ContextMenuInfo menuInfo) {
+        super.onCreateContextMenu(menu, v, menuInfo);
+        if (v.getId()==R.id.category_list) {
+            MenuInflater inflater = getMenuInflater();
+            inflater.inflate(R.menu.menu_list, menu);
+        }
+    }
+
+    public boolean onContextItemSelected(MenuItem item) {
+        AdapterView.AdapterContextMenuInfo menuItem = (AdapterView.AdapterContextMenuInfo) item.getMenuInfo();
+        CategoryDatabase categoryDatabase = new CategoryDatabase(this);
+        Category category = categoryDatabase.getCategory(((AdapterView.AdapterContextMenuInfo) menuItem).position);
+        categoryDatabase.deleteCategory(category);
+        initializeList();
+        return true;
     }
 }

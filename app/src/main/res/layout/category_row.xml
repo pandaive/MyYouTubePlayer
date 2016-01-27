@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="wrap_content"
-    android:layout_height="40dp">
+    android:layout_height="80dp">
 
     <ImageView
         android:id="@+id/category_icon"
@@ -17,8 +17,10 @@
         android:layout_alignParentTop="true"
         android:layout_alignParentRight="true"
         android:layout_width="wrap_content"
-        android:gravity="center_vertical"
-        android:paddingLeft="8dp"
-        android:layout_height="40dp"/>
+        android:paddingLeft="15dp"
+        android:layout_height="40dp"
+        android:layout_centerVertical="true"
+        android:textSize="20dp"
+        android:layout_marginTop="20dp"/>
 
 </RelativeLayout>

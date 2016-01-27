@@ -6,10 +6,11 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
+import android.widget.Toast;
 
 public class TimePicker extends AppCompatActivity {
 
-    private Integer minutes, seconds;
+    private Integer minutes = 0, seconds = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -33,7 +34,7 @@ public class TimePicker extends AppCompatActivity {
                                 minutes = hourOfDay;
                                 seconds = minute;
                             }
-                        }, 0, 0, true);
+                        }, minutes, seconds, true);
                 timePickerDialog.show();
             }
         });
@@ -42,11 +43,20 @@ public class TimePicker extends AppCompatActivity {
         nextButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                intent.setAction(Intent.ACTION_SEND);
-                intent.putExtra(CategoryPicker.EXTRA_MINUTES, minutes);
-                intent.putExtra(CategoryPicker.EXTRA_SECONDS, seconds);
+                try {
+                    if (minutes != 0 || seconds != 0) {
+                        intent.setAction(Intent.ACTION_SEND);
+                        intent.putExtra(CategoryPicker.EXTRA_MINUTES, minutes);
+                        intent.putExtra(CategoryPicker.EXTRA_SECONDS, seconds);
 
-                startActivity(intent);
+                        startActivity(intent);
+                    }
+                    else
+                        throw new NullPointerException();
+                }
+                catch (NullPointerException e) {
+                    Toast.makeText(TimePicker.this, "Nie wybrano czasu...", Toast.LENGTH_SHORT).show();
+                }
             }
         });
 

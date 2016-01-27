@@ -56,7 +56,7 @@ public class CategoryAdd extends AppCompatActivity {
             public void onClick(View v) {
                 String categoryLabelString = categoryLabel.getText().toString();
                 String categoryNameString = categoryName.getText().toString();
-
+                byte[] categoryImageFile = {};
                 ByteArrayOutputStream stream = new ByteArrayOutputStream();
                 if (bitmap != null)
                     bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream);
@@ -64,9 +64,25 @@ public class CategoryAdd extends AppCompatActivity {
                     Bitmap bitmap2 = Bitmap.createBitmap(40,40, Bitmap.Config.ARGB_4444);
                     bitmap2.compress(Bitmap.CompressFormat.PNG, 100, stream);
                 }
-                byte[] categoryImageFile = stream.toByteArray();
-
-                saveCategory(new Category(categoryLabelString, categoryNameString, categoryImageFile));
+                try {
+                    categoryImageFile = stream.toByteArray();
+                    if (categoryImageFile.length > 1000000)
+                        throw new OutOfMemoryError();
+                }
+                catch (OutOfMemoryError e) {
+                    Toast.makeText(CategoryAdd.this, "Obraz zbyt duży, aby go użyć :(", Toast.LENGTH_SHORT).show();
+                    stream.reset();
+                    Bitmap bitmap2 = Bitmap.createBitmap(40,40, Bitmap.Config.ARGB_4444);
+                    bitmap2.compress(Bitmap.CompressFormat.PNG, 100, stream);
+                    categoryImageFile = stream.toByteArray();
+                }
+                if (categoryNameString.equals(""))
+                    Toast.makeText(CategoryAdd.this, "Ustaw nazwę kategorii", Toast.LENGTH_SHORT).show();
+                else {
+                    if (categoryLabelString.equals(""))
+                        categoryLabelString = categoryNameString;
+                    saveCategory(new Category(categoryLabelString, categoryNameString, categoryImageFile));
+                }
             }
         });
     }
